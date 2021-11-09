@@ -9,8 +9,6 @@
 
     <link rel="icon" type="image/png" href="/static/i/favicon.png">
 
-    {% include 'js-strings.html' %}
-
     {% assets filters="jsmin", output="gen/journalist.js", "js/journalist.js" %}
       <script src="{{ ASSET_URL }}"></script>
     {% endassets %}
@@ -55,6 +53,7 @@
         {{ gettext("Powered by <b>SecureDrop {version}</b>.").format(version=version)|safe }}
       </footer>
       {% endblock %}
+      {% include 'js-strings.html' %}
     </div>
   </body>
 </html>
