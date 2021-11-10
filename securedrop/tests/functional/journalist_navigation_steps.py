@@ -568,11 +568,8 @@ class JournalistNavigationStepsMixin:
     def _edit_user(self, username, is_admin=False):
         self.wait_for(lambda: self.driver.find_element_by_id("users"))
 
-        new_user_edit_links = [
-            el
-            for el in self.driver.find_elements_by_tag_name("a")
-            if el.get_attribute("data-username") == username
-        ]
+        selector = 'a.edit-user[data-username="{}"]'.format(username)
+        new_user_edit_links = self.driver.find_elements_by_css_selector(selector)
 
         assert 1 == len(new_user_edit_links)
         new_user_edit_links[0].click()
@@ -624,11 +621,8 @@ class JournalistNavigationStepsMixin:
 
         # Click the "edit user" link for the new user
         # self._edit_user(self.new_user['username'])
-        new_user_edit_links = [
-            el
-            for el in self.driver.find_elements_by_tag_name("a")
-            if (el.get_attribute("data-username") == self.new_user["username"])
-        ]
+        selector = 'a.edit-user[data-username="{}"]'.format(self.new_user["username"])
+        new_user_edit_links = self.driver.find_elements_by_css_selector(selector)
         assert len(new_user_edit_links) == 1
         new_user_edit_links[0].click()
 
@@ -667,11 +661,8 @@ class JournalistNavigationStepsMixin:
 
         # Click the "edit user" link for the new user
         # self._edit_user(self.new_user['username'])
-        new_user_edit_links = [
-            el
-            for el in self.driver.find_elements_by_tag_name("a")
-            if (el.get_attribute("data-username") == self.new_user["username"])
-        ]
+        selector = 'a.edit-user[data-username="{}"]'.format(self.new_user["username"])
+        new_user_edit_links = self.driver.find_elements_by_css_selector(selector)
         assert len(new_user_edit_links) == 1
         new_user_edit_links[0].click()
 
@@ -723,7 +714,7 @@ class JournalistNavigationStepsMixin:
 
         self.wait_for(lambda: self.driver.find_element_by_css_selector("button#add-user"))
 
-        selector = 'a[data-username="{}"]'.format(self.new_user["username"])
+        selector = 'a.edit-user[data-username="{}"]'.format(self.new_user["username"])
         new_user_edit_links = self.driver.find_elements_by_css_selector(selector)
         assert len(new_user_edit_links) == 1
         self.safe_click_by_css_selector(selector)
@@ -918,7 +909,7 @@ class JournalistNavigationStepsMixin:
         self.wait_for(lambda: self.driver.find_element_by_id("username"))
 
     def _admin_visits_edit_user(self):
-        selector = 'a[data-username="{}"]'.format(self.new_user["username"])
+        selector = 'a.edit-user[data-username="{}"]'.format(self.new_user["username"])
         new_user_edit_links = self.driver.find_elements_by_css_selector(selector)
         assert len(new_user_edit_links) == 1
         self.safe_click_by_css_selector(selector)
