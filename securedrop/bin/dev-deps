@@ -163,9 +163,13 @@ function reset_demo() {
 
     gpg2 --homedir /var/lib/securedrop/keys --no-default-keyring --keyring /var/lib/securedrop/keys/pubring.gpg --import /var/lib/securedrop/journalist.pub
 
+    # Check if we should use fixed data instead of random data
+    if [ -n "${USE_FIXED_DATA:-""}" ]; then
+        echo "Loading fixed data from ${FIXED_DATA_CONTAINER_PATH}..."
+        ./loadfixeddata.py --yaml-path "${FIXED_DATA_CONTAINER_PATH}"
     # Can't pass an array environment variable with "docker --env", so
     # break up the string we can pass.
-    if [ -n "${LOADDATA_ARGS:-""}" ]
+    elif [ -n "${LOADDATA_ARGS:-""}" ]
     then
         IFS=" " read -r -a loaddata_arg_array <<< "${LOADDATA_ARGS}"
         ./loaddata.py "${loaddata_arg_array[@]}"

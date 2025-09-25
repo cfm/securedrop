@@ -116,6 +116,22 @@ function docker_run() {
         DOCKER_RUN_ARGUMENTS="${DOCKER_RUN_ARGUMENTS} -it"
     fi
 
+    # Handle fixed data paths
+    if [ -n "${USE_FIXED_DATA:-}" ]; then
+        # Resolve absolute path for the YAML file
+        FIXED_DATA_PATH="$(realpath "${USE_FIXED_DATA}")"
+
+        # Get the directory containing the YAML file
+        FIXED_DATA_DIR="$(dirname "${FIXED_DATA_PATH}")"
+        FIXED_DATA_FILE="$(basename "${FIXED_DATA_PATH}")"
+
+        # Mount the directory containing the YAML file
+        DOCKER_RUN_ARGUMENTS="${DOCKER_RUN_ARGUMENTS} --volume ${FIXED_DATA_DIR}:/fixed-data:Z"
+
+        # Set environment variable for the script to use the mounted path
+        DOCKER_RUN_ARGUMENTS="${DOCKER_RUN_ARGUMENTS} -e FIXED_DATA_CONTAINER_PATH=/fixed-data/${FIXED_DATA_FILE}"
+    fi
+
     if [ -n "${USE_TOR:-}" ]; then
         # Mount persistent onion services
         $DOCKER_BIN volume inspect sd-onion-services -f " " || $DOCKER_BIN volume create sd-onion-services
@@ -141,6 +157,7 @@ function docker_run() {
            -e NUM_JOURNALISTS \
            -e NUM_SOURCES \
            -e LOADDATA_ARGS \
+           -e USE_FIXED_DATA \
            -e LC_ALL=C.UTF-8 \
            -e LANG=C.UTF-8 \
            -e TEST_LOCALES \
