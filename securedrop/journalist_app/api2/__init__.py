@@ -3,10 +3,11 @@ from dataclasses import asdict
 from typing import Mapping, Optional
 
 from flask import Blueprint, abort, json, jsonify, request
+from journalist_app.api2.events import EventHandler
 from journalist_app.api2.types import (
+    BatchRequest,
+    BatchResponse,
     Index,
-    MetadataRequest,
-    MetadataResponse,
     Version,
 )
 from models import EagerQuery, Journalist, Reply, Source, Submission, eager_query
@@ -79,10 +80,11 @@ def index(source_prefix: Optional[str] = None) -> Response:
     return response.make_conditional(request)
 
 
-@blp.post("/metadata")
-def metadata() -> Response:
+@blp.post("/data")  # read-write BatchRequest
+@blp.post("/metadata")  # DEPRECATED: read-only MetadataRequest
+def data() -> Response:
     """
-    Return the ``MetadataResponse`` requested in the ``MetadataRequest``.  The
+    Return the ``BatchResponse`` requested in the ``BatchRequest``.  The
     client MAY choose an arbitrary list of objects with each request, e.g. from
     a shard retrieved from ``/index/<source_prefix>``.
 
@@ -91,11 +93,27 @@ def metadata() -> Response:
     the ``Reply`` tables for the set of all item UUIDs.
     """
     try:
-        requested = MetadataRequest(**request.json)  # type: ignore
+        requested = BatchRequest(**request.json)  # type: ignore
     except (TypeError, ValueError) as exc:
         abort(422, f"malformed request; {exc}")
 
-    response = MetadataResponse()
+    response = BatchResponse()
+
+    for event in requested.events:
+        """
+        # Case 1: already processed: If event.snowflake_id is already cached in
+        # Redis, we've already processed it; just return its status.
+        status = EventStatus(event.snowflake_id, 200)  # FIXME
+        response.events.append(status)
+        """
+
+        # Case 2: needs to be processed.
+        result = EventHandler.process(event)
+        for uuid, source in result.sources.items():
+            response.sources[uuid] = source.to_api_v2()
+        for uuid, item in result.items.items():
+            response.items[uuid] = item.to_api_v2()
+        response.events[result.event_id] = result.status
 
     if requested.sources:
         source_query: EagerQuery = eager_query("Source")

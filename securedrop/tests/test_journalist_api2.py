@@ -1,9 +1,11 @@
 from contextlib import contextmanager
+from dataclasses import asdict
 
 import pytest
 from flask import url_for
 from flask_sqlalchemy import get_debug_queries
 from journalist_app.api2 import json_version
+from journalist_app.api2.types import Event, EventID, EventStatusCode, EventType, SourceTarget
 from sqlalchemy.orm.exc import MultipleResultsFound
 from tests.utils.api_helper import get_api_headers
 
@@ -53,7 +55,7 @@ def test_json_version():
         ("api2.index", {}),
         ("api2.index", {"source_prefix": "foo"}),
         # while this should be a POST request, the 403 will kick in first
-        ("api2.metadata", {}),
+        ("api2.data", {}),
     ],
 )
 def test_auth_required(journalist_app, endpoint, kwargs):
@@ -176,7 +178,7 @@ def test_metadata(journalist_app, test_files, test_journo, journalist_api_token)
         # Get the full source
         with assert_query_count(1):
             response = app.post(
-                url_for("api2.metadata"),
+                url_for("api2.data"),
                 json={"sources": [uuid]},
                 headers=get_api_headers(journalist_api_token),
             )
@@ -190,7 +192,7 @@ def test_metadata(journalist_app, test_files, test_journo, journalist_api_token)
         item_uuid = test_files["submissions"][0].uuid
         with assert_query_count(2):
             response = app.post(
-                url_for("api2.metadata"),
+                url_for("api2.data"),
                 json={"items": [item_uuid]},
                 headers=get_api_headers(journalist_api_token),
             )
@@ -205,7 +207,7 @@ def test_metadata(journalist_app, test_files, test_journo, journalist_api_token)
         journalist_uuid = test_journo["uuid"]
         with assert_query_count(1, expect_login=False):
             response = app.post(
-                url_for("api2.metadata"),
+                url_for("api2.data"),
                 json={"journalists": [journalist_uuid]},
                 headers=get_api_headers(journalist_api_token),
             )
@@ -231,7 +233,7 @@ def test_item_collision(journalist_app, test_files_with_uuid_collision, journali
         item_uuid = test_files_with_uuid_collision["submissions"][0].uuid
         with pytest.raises(MultipleResultsFound):  # HTTP 500 in production
             app.post(
-                url_for("api2.metadata"),
+                url_for("api2.data"),
                 json={"items": [item_uuid]},
                 headers=get_api_headers(journalist_api_token),
             )
@@ -252,7 +254,7 @@ def test_api2_metadata_validation_invalid_json(journalist_app, journalist_api_to
     """Test that Flask rejects invalid JSON."""
     with journalist_app.test_client() as app:
         response = app.post(
-            url_for("api2.metadata"),
+            url_for("api2.data"),
             data=invalid_data,
             headers=get_api_headers(journalist_api_token),
         )
@@ -274,7 +276,7 @@ def test_api2_metadata_validation_non_dict_request(
     """Test that non-dict request body returns 400."""
     with journalist_app.test_client() as app:
         response = app.post(
-            url_for("api2.metadata"),
+            url_for("api2.data"),
             json=invalid_request,
             headers=get_api_headers(journalist_api_token),
         )
@@ -304,8 +306,55 @@ def test_api2_metadata_validation_valid_requests(
     """Test that valid requests pass validation."""
     with journalist_app.test_client() as app:
         response = app.post(
-            url_for("api2.metadata"),
+            url_for("api2.data"),
             json=valid_request,
             headers=get_api_headers(journalist_api_token),
         )
         assert response.status_code == 200
+
+
+@pytest.mark.parametrize(
+    "request_with_events,event_statuses",
+    [
+        (
+            {
+                "events": [
+                    {
+                        "id": "123456",
+                        "type": "foobar",
+                        "target": {"source_uuid": "abcdef", "version": "uvwxyz"},
+                    }
+                ]
+            },
+            {"123456": 400},
+        ),
+        (
+            {
+                "events": [
+                    {
+                        "id": "123456",
+                        "type": "reply_sent",
+                        "target": {"source_uuid": "abcdef", "version": "uvwxyz"},
+                    }
+                ]
+            },
+            {"123456": 501},
+        ),
+    ],
+)
+def test_api2_invalid_events(
+    journalist_app,
+    journalist_api_token,
+    request_with_events,
+    event_statuses,
+):
+    """Test that invalid events are rejected."""
+    with journalist_app.test_client() as app:
+        response = app.post(
+            url_for("api2.data"),
+            json=request_with_events,
+            headers=get_api_headers(journalist_api_token),
+        )
+        for event in request_with_events["events"]:
+            event_id = event["id"]
+            assert response.json["events"][event_id] == event_statuses[event_id]
