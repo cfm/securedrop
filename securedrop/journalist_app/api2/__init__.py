@@ -1,15 +1,14 @@
 import hashlib
-from dataclasses import asdict, dataclass, field
-from typing import (
-    Any,
-    Dict,
-    Mapping,
-    NewType,
-    Optional,
-    Set,
-)
+from dataclasses import asdict
+from typing import Mapping, Optional
 
 from flask import Blueprint, abort, json, jsonify, request
+from journalist_app.api2.types import (
+    Index,
+    MetadataRequest,
+    MetadataResponse,
+    Version,
+)
 from models import EagerQuery, Journalist, Reply, Source, Submission, eager_query
 from sqlalchemy.inspection import inspect
 from sqlalchemy.orm.exc import MultipleResultsFound
@@ -18,9 +17,6 @@ from werkzeug.wrappers.response import Response
 blp = Blueprint("api2", __name__, url_prefix="/api/v2")
 
 PREFIX_MAX_LEN = inspect(Source).columns["uuid"].type.length
-
-
-Version = NewType("Version", str)
 
 
 def json_version(d: Mapping) -> Version:
@@ -35,22 +31,6 @@ def json_version(d: Mapping) -> Version:
     s = json.dumps(d, separators=[",", ":"], sort_keys=True)
     b = s.encode("utf-8")
     return Version(hashlib.blake2s(b).hexdigest())
-
-
-# TODO: generic UUID[T] in Python 3.12
-SourceUUID = NewType("SourceUUID", str)
-ItemUUID = NewType("ItemUUID", str)
-JournalistUUID = NewType("JournalistUUID", str)
-
-
-@dataclass
-class Index:
-    # Source metadata, optionally filtered by `source_prefix`:
-    sources: Dict[SourceUUID, Version] = field(default_factory=dict)
-    items: Dict[ItemUUID, Version] = field(default_factory=dict)
-
-    # Non-source metadata (always returned):
-    journalists: Dict[JournalistUUID, Version] = field(default_factory=dict)
 
 
 @blp.get("/index")
@@ -97,26 +77,6 @@ def index(source_prefix: Optional[str] = None) -> Response:
     # return HTTP 304 with an empty response.
     response.set_etag(version)
     return response.make_conditional(request)
-
-
-@dataclass
-class MetadataRequest:
-    # Source metadata:
-    sources: Set[SourceUUID] = field(default_factory=set)
-    items: Set[ItemUUID] = field(default_factory=set)
-
-    # Non-source metadata:
-    journalists: Set[JournalistUUID] = field(default_factory=set)
-
-
-@dataclass
-class MetadataResponse:
-    # Source metadata:
-    sources: Dict[SourceUUID, Any] = field(default_factory=dict)
-    items: Dict[ItemUUID, Any] = field(default_factory=dict)
-
-    # Non-source metadata:
-    journalists: Dict[JournalistUUID, Any] = field(default_factory=dict)
 
 
 @blp.post("/metadata")
