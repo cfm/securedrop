@@ -1,3 +1,4 @@
+from db import db
 from journalist_app.api2.types import (
     Event,
     EventResult,
@@ -6,6 +7,9 @@ from journalist_app.api2.types import (
     ItemTarget,
     SourceTarget,
 )
+from journalist_app.api2.shared import save_reply
+from models import Source
+from sqlalchemy.orm.exc import NoResultFound
 
 
 class EventHandler:
@@ -36,3 +40,23 @@ class EventHandler:
             )
 
         return handler(event)
+
+    @staticmethod
+    def handle_reply_sent(event: Event) -> EventResult:
+        try:
+            source = Source.query.filter(Source.uuid == event.target.source_uuid).one()
+        except NoResultFound:
+            return EventResult(
+                event_id=event.id,
+                status=EventStatusCode.NotFound,
+            )
+
+        reply = save_reply(source, event.data)
+        db.session.refresh(source)
+
+        return EventResult(
+            event_id=event.id,
+            status=EventStatusCode.OK,
+            sources={source.uuid: source},
+            items={reply.uuid: reply},
+        )
