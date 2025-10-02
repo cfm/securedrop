@@ -1,4 +1,3 @@
-from db import db
 from journalist_app.api2.types import (
     Event,
     EventResult,

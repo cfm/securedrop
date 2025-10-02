@@ -1,29 +1,27 @@
 import collections.abc
 import json
 from datetime import datetime, timezone
-from os import path
 from typing import Set, Tuple, Union
-from uuid import UUID
 
 import flask
 import werkzeug
 from db import db
 from flask import Blueprint, abort, jsonify, request
 from journalist_app import utils
+from journalist_app.api2.shared import save_reply
 from journalist_app.sessions import session
 from models import (
     InvalidUsernameException,
     Journalist,
     LoginThrottledException,
     Reply,
-    SeenReply,
     Source,
     Submission,
     WrongPasswordException,
 )
 from sqlalchemy import Column
 from sqlalchemy.exc import IntegrityError
-from store import NotEncrypted, Storage
+from store import NotEncrypted
 from two_factor import OtpSecretInvalid, OtpTokenInvalid
 from werkzeug.exceptions import default_exceptions
 
@@ -224,43 +222,15 @@ def make_blueprint() -> Blueprint:
             if not data["reply"]:
                 abort(400, "reply should not be empty")
 
-            source.interaction_count += 1
             try:
-                filename = Storage.get_default().save_pre_encrypted_reply(
-                    source.filesystem_id,
-                    source.interaction_count,
-                    source.journalist_filename,
-                    data["reply"],
-                )
-            except NotEncrypted:
-                return jsonify({"message": "You must encrypt replies client side"}), 400
-
-            # issue #3918
-            filename = path.basename(filename)
-
-            reply = Reply(session.get_user(), source, filename, Storage.get_default())
-
-            reply_uuid = data.get("uuid", None)
-            if reply_uuid is not None:
-                # check that is is parseable
-                try:
-                    UUID(reply_uuid)
-                except ValueError:
-                    abort(400, "'uuid' was not a valid UUID")
-                reply.uuid = reply_uuid
-
-            try:
-                db.session.add(reply)
-                seen_reply = SeenReply(reply=reply, journalist=session.get_user())
-                db.session.add(seen_reply)
-                db.session.add(source)
-                db.session.commit()
+                reply = save_reply(source, data)
             except IntegrityError as e:
-                db.session.rollback()
                 if "UNIQUE constraint failed: replies.uuid" in str(e):
                     abort(409, "That UUID is already in use.")
-                else:
-                    raise e
+            except NotEncrypted:
+                return jsonify({"message": "You must encrypt replies client side"}), 400
+            except ValueError:
+                abort(400, "reply does not have a valid UUID")
 
             return (
                 jsonify(
