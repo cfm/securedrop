@@ -2,7 +2,6 @@ from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum, auto
 from typing import (
     Any,
-    Dict,
     List,
     NewType,
     Optional,
@@ -11,6 +10,7 @@ from typing import (
     Union,
 )
 
+Record = NewType("Record", dict[str, Any])
 Version = NewType("Version", str)
 
 
@@ -40,11 +40,11 @@ EventStatus = Tuple[EventStatusCode, Optional[str]]
 @dataclass
 class Index:
     # Source metadata, optionally filtered by `source_prefix`:
-    sources: Dict[SourceUUID, Version] = field(default_factory=dict)
-    items: Dict[ItemUUID, Version] = field(default_factory=dict)
+    sources: dict[SourceUUID, Version] = field(default_factory=dict)
+    items: dict[ItemUUID, Version] = field(default_factory=dict)
 
     # Non-source metadata (always returned):
-    journalists: Dict[JournalistUUID, Version] = field(default_factory=dict)
+    journalists: dict[JournalistUUID, Version] = field(default_factory=dict)
 
 
 @dataclass
@@ -64,7 +64,7 @@ class Event:
     id: EventID
     target: Union[SourceTarget, ItemTarget]
     type: EventType
-    data: Any = field(default_factory=dict)
+    data: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -72,9 +72,9 @@ class EventResult:
     event_id: EventID
     status: EventStatus
 
-    # Changed:
-    sources: Dict[SourceUUID, Any] = field(default_factory=dict)
-    items: Dict[ItemUUID, Any] = field(default_factory=dict)
+    # Changed (return {<uuid>: None} to indicate deletion):
+    sources: dict[SourceUUID, Optional[Record]] = field(default_factory=dict)
+    items: dict[ItemUUID, Optional[Record]] = field(default_factory=dict)
 
 
 @dataclass
@@ -92,12 +92,16 @@ class BatchRequest:
 
 @dataclass
 class BatchResponse:
+    """
+    In dictionaries keyed by UUID, an entry {<uuid>: None} indicates deletion.
+    """
+
     # Source metadata:
-    sources: Dict[SourceUUID, Any] = field(default_factory=dict)
-    items: Dict[ItemUUID, Any] = field(default_factory=dict)
+    sources: dict[SourceUUID, Optional[Record]] = field(default_factory=dict)
+    items: dict[ItemUUID, Optional[Record]] = field(default_factory=dict)
 
     # Non-source metadata:
-    journalists: Dict[JournalistUUID, Any] = field(default_factory=dict)
+    journalists: dict[JournalistUUID, Optional[Record]] = field(default_factory=dict)
 
     # Events processed by the server:
-    events: Dict[EventID, EventStatus] = field(default_factory=dict)
+    events: dict[EventID, EventStatus] = field(default_factory=dict)
