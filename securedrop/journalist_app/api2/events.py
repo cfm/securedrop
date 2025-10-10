@@ -14,6 +14,22 @@ from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 
 
 class EventHandler:
+    """
+    This class is the per-event entry point for handling events.  To add a
+    handler for a new event `thing_done`, you must:
+
+    1. define the enum value `EventType.THING_DONE` in journalist_api2.types;
+
+    2. define the handler as a static method `handle_thing_done(event: Event)`
+       in this class
+
+    3. explicitly register `{"thing_done": cls.handle_thing_done}` inside
+       `EventHandler.process()`.
+
+    This is belt-and-suspenders for ensuring that only the intended methods are
+    exposed as callable event handlers.
+    """
+
     @classmethod
     def process(cls, event_dict: dict) -> EventResult:
         try:
@@ -33,7 +49,10 @@ class EventHandler:
             )
 
         try:
-            handler = getattr(cls, f"handle_{event.type}")
+            handler = {
+                "item_deleted": cls.handle_item_deleted,
+                "reply_sent": cls.handle_reply_sent,
+            }[event.type]
         except AttributeError:
             return EventResult(
                 event_id=event.id,
