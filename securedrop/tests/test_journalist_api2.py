@@ -6,7 +6,7 @@ import pytest
 from flask import url_for
 from flask_sqlalchemy import get_debug_queries
 from journalist_app.api2 import json_version
-from journalist_app.api2.types import Event, EventStatusCode, EventType, SourceTarget
+from journalist_app.api2.types import Event, EventType, SourceTarget
 from sqlalchemy.orm.exc import MultipleResultsFound
 from tests.utils.api_helper import get_api_headers
 
@@ -315,7 +315,7 @@ def test_api2_metadata_validation_valid_requests(
 
 
 @pytest.mark.parametrize(
-    "request_with_events,event_statuses",
+    "request_with_events,results",
     [
         (
             {
@@ -327,7 +327,7 @@ def test_api2_metadata_validation_valid_requests(
                     }
                 ]
             },
-            {"123456": 400},
+            {"123456": [400, "'foobar' is not a valid EventType"]},
         ),
     ],
 )
@@ -335,7 +335,7 @@ def test_api2_invalid_events(
     journalist_app,
     journalist_api_token,
     request_with_events,
-    event_statuses,
+    results,
 ):
     """Test that invalid events are rejected."""
     with journalist_app.test_client() as app:
@@ -346,7 +346,7 @@ def test_api2_invalid_events(
         )
         for event in request_with_events["events"]:
             event_id = event["id"]
-            assert response.json["events"][event_id] == event_statuses[event_id]
+            assert response.json["events"][event_id] == results[event_id]
 
 
 # FIXME: This is
@@ -421,5 +421,5 @@ def test_api2_reply_sent_event(
             json={"events": [asdict(event)]},
             headers=get_api_headers(journalist_api_token),
         )
-        assert response.json["events"][event.id] == EventStatusCode.OK
+        assert response.json["events"][event.id] == [200, None]
         assert reply["uuid"] in response.json["items"]

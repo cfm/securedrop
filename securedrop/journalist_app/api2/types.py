@@ -5,7 +5,9 @@ from typing import (
     Dict,
     List,
     NewType,
+    Optional,
     Set,
+    Tuple,
     Union,
 )
 
@@ -30,6 +32,9 @@ class EventStatusCode(IntEnum):
     BadRequest = 400
     NotFound = 404
     NotImplemented = 501
+
+
+EventStatus = Tuple[EventStatusCode, Optional[str]]
 
 
 @dataclass
@@ -65,7 +70,7 @@ class Event:
 @dataclass
 class EventResult:
     event_id: EventID
-    status: EventStatusCode
+    status: EventStatus
 
     # Changed:
     sources: Dict[SourceUUID, Any] = field(default_factory=dict)
@@ -95,4 +100,4 @@ class BatchResponse:
     journalists: Dict[JournalistUUID, Any] = field(default_factory=dict)
 
     # Events processed by the server:
-    events: Dict[EventID, EventStatusCode] = field(default_factory=dict)
+    events: Dict[EventID, EventStatus] = field(default_factory=dict)

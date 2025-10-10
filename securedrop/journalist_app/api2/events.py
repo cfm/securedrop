@@ -25,10 +25,10 @@ class EventHandler:
             else:
                 raise TypeError("invalid event target")
 
-        except (TypeError, ValueError):
+        except (TypeError, ValueError) as e:
             return EventResult(
                 event_id=event.id,
-                status=EventStatusCode.BadRequest,
+                status=(EventStatusCode.BadRequest, str(e)),
             )
 
         try:
@@ -36,7 +36,7 @@ class EventHandler:
         except AttributeError:
             return EventResult(
                 event_id=event.id,
-                status=EventStatusCode.NotImplemented,
+                status=(EventStatusCode.NotImplemented, f"no handler for event type: {event.type}"),
             )
 
         return handler(event)
@@ -56,7 +56,7 @@ class EventHandler:
 
         return EventResult(
             event_id=event.id,
-            status=EventStatusCode.OK,
+            status=(EventStatusCode.OK, None),
             sources={source.uuid: source},
             items={reply.uuid: reply},
         )
