@@ -6,7 +6,7 @@ import pytest
 from flask import url_for
 from flask_sqlalchemy import get_debug_queries
 from journalist_app.api2 import json_version
-from journalist_app.api2.types import Event, EventType, SourceTarget
+from journalist_app.api2.types import Event, EventType, ItemTarget, SourceTarget
 from sqlalchemy.orm.exc import MultipleResultsFound
 from tests.utils.api_helper import get_api_headers
 
@@ -388,7 +388,7 @@ Dl9xuZb+mEQlOnxD3mYf6htx5CNRdp//Rl3fgbGv3vZCmE+GQ7CvgHkf+7Evinno
 """
 
 
-def test_api2_reply_sent_event(
+def test_api2_reply_sent(
     journalist_app,
     journalist_api_token,
     test_files,
@@ -423,3 +423,61 @@ def test_api2_reply_sent_event(
         )
         assert response.json["events"][event.id] == [200, None]
         assert reply["uuid"] in response.json["items"]
+
+
+def test_api2_item_deleted(
+    journalist_app,
+    journalist_api_token,
+    test_files,
+    test_journo,
+):
+    """Test processing of the "item_deleted" event."""
+    with journalist_app.test_client() as app:
+        index = app.get(
+            url_for("api2.index"),
+            headers=get_api_headers(journalist_api_token),
+        )
+
+        assert index.status_code == 200
+
+        # Delete a submission:
+        submission_uuid = test_files["submissions"][0].uuid
+        submission_version = index.json["items"][submission_uuid]
+        event = Event(
+            id="123456",
+            target=ItemTarget(item_uuid=submission_uuid, version=submission_version),
+            type=EventType.ITEM_DELETED,
+        )
+        response = app.post(
+            url_for("api2.data"),
+            json={"events": [asdict(event)]},
+            headers=get_api_headers(journalist_api_token),
+        )
+        assert response.json["events"][event.id] == [200, None]
+        assert response.json["items"][event.target.item_uuid] is None
+
+        # Delete a reply:
+        reply_uuid = test_files["replies"][0].uuid
+        reply_version = index.json["items"][reply_uuid]
+        event = Event(
+            id="123456",
+            target=ItemTarget(item_uuid=reply_uuid, version=reply_version),
+            type=EventType.ITEM_DELETED,
+        )
+        response = app.post(
+            url_for("api2.data"),
+            json={"events": [asdict(event)]},
+            headers=get_api_headers(journalist_api_token),
+        )
+        assert response.json["events"][event.id] == [200, None]
+        assert response.json["items"][event.target.item_uuid] is None
+
+        # Try to delete something that doesn't exist:
+        event.target.item_uuid = "does not exist"
+        response = app.post(
+            url_for("api2.data"),
+            json={"events": [asdict(event)]},
+            headers=get_api_headers(journalist_api_token),
+        )
+        assert response.json["events"][event.id] == [404, "could not find item: does not exist"]
+        assert event.target.item_uuid not in response.json["items"]

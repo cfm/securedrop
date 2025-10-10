@@ -25,6 +25,7 @@ EventID = NewType("EventID", str)  # int, but opaque on the wire
 
 class EventType(StrEnum):
     REPLY_SENT = auto()
+    ITEM_DELETED = auto()
 
 
 class EventStatusCode(IntEnum):

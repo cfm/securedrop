@@ -110,9 +110,9 @@ def data() -> Response:
         # Case 2: needs to be processed.
         result = EventHandler.process(event)
         for uuid, source in result.sources.items():
-            response.sources[uuid] = source.to_api_v2()
+            response.sources[uuid] = source.to_api_v2() if source is not None else None
         for uuid, item in result.items.items():
-            response.items[uuid] = item.to_api_v2()
+            response.items[uuid] = item.to_api_v2() if item is not None else None
         response.events[result.event_id] = result.status
 
     if requested.sources:
