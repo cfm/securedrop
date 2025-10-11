@@ -11,6 +11,8 @@ from journalist_app.api2.types import (
     Version,
 )
 from models import EagerQuery, Journalist, Reply, Source, Submission, eager_query
+from redis import Redis
+from sdconfig import SecureDropConfig
 from sqlalchemy.inspection import inspect
 from sqlalchemy.orm.exc import MultipleResultsFound
 from werkzeug.wrappers.response import Response
@@ -88,9 +90,10 @@ def data() -> Response:
     client MAY choose an arbitrary list of objects with each request, e.g. from
     a shard retrieved from ``/index/<source_prefix>``.
 
-    NB.  Returning sources is O(1) from the eagerly-loaded ``all_sources()``.
-    Returning items is O(2), since we have to search both the ``Submission`` and
-    the ``Reply`` tables for the set of all item UUIDs.
+    NB.  Reading sources (without any side effects from processing events) is
+    O(1) from the eagerly-loaded ``all_sources()``.  Reading items is O(2),
+    since we have to search both the ``Submission`` and the ``Reply`` tables for
+    the set of all item UUIDs.
     """
     try:
         requested = BatchRequest(**request.json)  # type: ignore
@@ -99,21 +102,19 @@ def data() -> Response:
 
     response = BatchResponse()
 
-    for event in requested.events:
-        """
-        # Case 1: already processed: If event.snowflake_id is already cached in
-        # Redis, we've already processed it; just return its status.
-        status = EventStatus(event.snowflake_id, 200)  # FIXME
-        response.events.append(status)
-        """
+    if requested.events:
+        # Don't set up the EventHandler, connect to Redis, etc., unless we have
+        # events to process.
+        config = SecureDropConfig.get_current()
+        handler = EventHandler(redis=Redis(decode_responses=True, **config.REDIS_KWARGS))
 
-        # Case 2: needs to be processed.
-        result = EventHandler.process(event)
-        for uuid, source in result.sources.items():
-            response.sources[uuid] = source.to_api_v2() if source is not None else None
-        for uuid, item in result.items.items():
-            response.items[uuid] = item.to_api_v2() if item is not None else None
-        response.events[result.event_id] = result.status
+        for event in requested.events:
+            result = handler.process(event)
+            for uuid, source in result.sources.items():
+                response.sources[uuid] = source.to_api_v2() if source is not None else None
+            for uuid, item in result.items.items():
+                response.items[uuid] = item.to_api_v2() if item is not None else None
+            response.events[result.event_id] = result.status
 
     if requested.sources:
         source_query: EagerQuery = eager_query("Source")

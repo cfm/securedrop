@@ -424,6 +424,15 @@ def test_api2_reply_sent(
         assert response.json["events"][event.id] == [200, None]
         assert reply["uuid"] in response.json["items"]
 
+        # Duplicate reply is acknowledged but not processed again:
+        response = app.post(
+            url_for("api2.data"),
+            json={"events": [asdict(event)]},
+            headers=get_api_headers(journalist_api_token),
+        )
+        assert response.json["events"][event.id] == [208, None]
+        assert reply["uuid"] not in response.json["items"]
+
 
 def test_api2_item_deleted(
     journalist_app,

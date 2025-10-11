@@ -30,6 +30,7 @@ class EventType(StrEnum):
 
 class EventStatusCode(IntEnum):
     OK = 200
+    AlreadyReported = 208
     BadRequest = 400
     NotFound = 404
     NotImplemented = 501
