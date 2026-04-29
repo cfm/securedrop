@@ -1,0 +1,19 @@
+[Unit]
+Description=SecureDrop Journalist API (Rust)
+After=apache2.service
+Wants=apache2.service
+
+[Service]
+Type=exec
+ExecStart=/usr/lib/securedrop/journalist-api-rs --config /etc/securedrop/journalist-api.toml
+Restart=on-failure
+RestartSec=3s
+User=www-data
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=full
+ReadOnlyDirectories=/
+ReadWriteDirectories=/var/lib/securedrop
+
+[Install]
+WantedBy=multi-user.target

@@ -21,6 +21,10 @@ override_dh_installdeb:
 override_dh_auto_install:
 	# Build securedrop-config Rust code
 	python3 /srv/rust/redwood/build-wheel.py --release --redwood /srv/rust/redwood --target /srv/rust/target
+	# Build journalist-api-rs
+	cargo build --release --manifest-path /srv/rust/Cargo.toml -p journalist-api-rs
+	install -Dm755 /srv/rust/target/release/journalist-api-rs \
+		${CURDIR}/debian/securedrop-app-code/usr/lib/securedrop/journalist-api-rs
 	# Set up virtualenv and install dependencies
 	/usr/bin/python3 -m venv ./debian/securedrop-app-code/opt/venvs/securedrop-app-code
 	./debian/securedrop-app-code/opt/venvs/securedrop-app-code/bin/pip install $(PIP_ARGS) \

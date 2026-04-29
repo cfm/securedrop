@@ -15,6 +15,8 @@ source /etc/os-release
 cp -R /src/securedrop /srv/securedrop
 mkdir /srv/rust
 cp -R /src/redwood /srv/rust/redwood
+mkdir -p /srv/rust/securedrop
+cp -R /src/securedrop/journalist-api-rs /srv/rust/securedrop/journalist-api-rs
 cp /src/Cargo.{toml,lock} /srv/rust/
 cd /srv/securedrop/
 
