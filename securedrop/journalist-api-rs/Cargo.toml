@@ -1,0 +1,25 @@
+[package]
+name = "journalist-api-rs"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "journalist-api-rs"
+path = "src/main.rs"
+
+[dependencies]
+axum               = { version = "0.7", features = ["json"] }
+tokio              = { version = "1",   features = ["rt-multi-thread", "macros"] }
+serde              = { version = "1",   features = ["derive"] }
+serde_json         = "1"
+toml               = "0.8"
+reqwest            = { version = "0.12", default-features = false }
+rusqlite           = { version = "0.31", features = ["bundled"] }
+r2d2               = "0.8"
+r2d2_sqlite        = "0.24"
+blake2             = "0.10"
+hex                = "0.4"
+chrono             = { version = "0.4", features = ["serde"] }
+anyhow             = "1"
+tracing            = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }

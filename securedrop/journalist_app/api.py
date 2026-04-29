@@ -73,6 +73,7 @@ def make_blueprint() -> Blueprint:
                     abort(400, "malformed request")
 
     @api.route("/token", methods=["POST"])
+    @api.route("/_token", methods=["POST"])
     def get_token() -> tuple[flask.Response, int]:
         creds = json.loads(request.data.decode("utf-8"))
 
@@ -331,6 +332,11 @@ def make_blueprint() -> Blueprint:
     def get_all_users() -> tuple[flask.Response, int]:
         users = Journalist.query.all()
         return jsonify({"users": [user.to_api_v1(all_info=False) for user in users]}), 200
+
+    @api.route("/auth", methods=["GET"])
+    @api.route("/_auth", methods=["GET"])
+    def check_auth() -> tuple[flask.Response, int]:
+        return jsonify({}), 200
 
     @api.route("/logout", methods=["POST"])
     def logout() -> tuple[flask.Response, int]:

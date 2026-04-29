@@ -20,7 +20,7 @@ from werkzeug import Response
 from werkzeug.exceptions import HTTPException, default_exceptions
 
 _libc = ctypes.CDLL("libc.so.6")
-_heavy_api_routes = ["api.get_token", "api2.index", "api2.data"]
+_heavy_api_routes = ["api2.data"]
 _insecure_views = ["main.login", "static"]
 _insecure_api_views = ["api.get_token", "api.get_endpoints"]
 

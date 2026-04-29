@@ -2,6 +2,7 @@
 
 members = [
     "redwood",
+    "securedrop/journalist-api-rs",
 ]
 
 resolver = "2"
