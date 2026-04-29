@@ -1,0 +1,10 @@
+[server]
+listen = "127.0.0.1:{{ journalist_api_rs_port }}"
+
+[database]
+path = "{{ securedrop_data }}/db.sqlite"
+busy_timeout_ms = 5000
+
+[python_backend]
+token_url      = "http://127.0.0.1:8080/api/v1/_token"
+auth_check_url = "http://127.0.0.1:8080/api/v1/_auth"

@@ -57,6 +57,8 @@ apache_modules:
   - mime
   - mpm_event
   - negotiation
+  - proxy
+  - proxy_http
   - reqtimeout
   - rewrite
   - ssl
@@ -70,6 +72,8 @@ apache_disabled_modules:
   - autoindex
   - env
   - status
+
+journalist_api_rs_port: 8082
 
 # The locale used when the browser or the user do not have a preference
 securedrop_default_locale: en_US
