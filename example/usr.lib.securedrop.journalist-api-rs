@@ -1,0 +1,20 @@
+#include <tunables/global>
+
+/usr/lib/securedrop/journalist-api-rs {
+  #include <abstractions/base>
+
+  /usr/lib/securedrop/journalist-api-rs mr,
+
+  # Config
+  /etc/securedrop/journalist-api.toml r,
+
+  # SQLite database shared with the mod_wsgi daemon.
+  # rwk on the main file because rusqlite opens READWRITE to allow PRAGMA
+  # statements; the process issues only SELECT queries at runtime.
+  /var/lib/securedrop/db.sqlite     rwk,
+  /var/lib/securedrop/db.sqlite-shm rwk,
+  /var/lib/securedrop/db.sqlite-wal rwk,
+
+  # Loopback TCP only: listen on :8082, connect to Apache :8083
+  network inet stream,
+}

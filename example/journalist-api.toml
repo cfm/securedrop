@@ -1,0 +1,20 @@
+[server]
+listen = "127.0.0.1:8082"
+
+[database]
+path = "/var/lib/securedrop/db.sqlite"
+busy_timeout_ms = 5000
+
+[storage]
+path        = "/var/lib/securedrop/store"
+shredder_dir = "/var/lib/securedrop/tmp"
+gpg_key_dir  = "/var/lib/securedrop/keys"
+
+[redis]
+url      = "redis://127.0.0.1"
+# password: copy REDIS_PASSWORD value from /var/www/securedrop/config.py
+password = ""
+
+[python_backend]
+token_url      = "http://127.0.0.1:8080/api/v1/_token"
+auth_check_url = "http://127.0.0.1:8080/api/v1/_auth"
